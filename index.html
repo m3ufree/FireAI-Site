@@ -88,6 +88,33 @@
   footer .row{display:flex; gap:18px; flex-wrap:wrap; align-items:center; justify-content:center; text-align:center}
   footer a{color:var(--blue); font-weight:600}
   @media (prefers-reduced-motion:reduce){ .blob,.blob-field .outer,.egg::after{animation:none} }
+
+  /* ===== install overlay ===== */
+  .install-overlay{position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center;
+    background:rgba(14,14,17,.45); backdrop-filter:blur(6px); padding:20px}
+  .install-overlay.open{display:flex}
+  .install-card{background:#fff; border-radius:32px; padding:38px 34px; max-width:520px; width:100%; max-height:88vh; overflow:auto;
+    box-shadow:0 24px 70px rgba(14,14,17,.3); animation:pop .18s ease}
+  @keyframes pop{from{transform:scale(.94); opacity:0}to{transform:scale(1); opacity:1}}
+  .install-card h3{font-size:24px; letter-spacing:-.6px}
+  .install-card .for{color:var(--ink-soft); font-size:14px; margin-top:6px}
+  .install-card .for b{color:var(--blue)}
+  .inst-close{float:right; border:none; background:var(--bg-soft); width:34px; height:34px; border-radius:50%;
+    font-size:16px; cursor:pointer; color:var(--ink-soft)}
+  .inst-close:hover{background:#ececef}
+  .inst-list{margin-top:20px; display:flex; flex-direction:column; gap:10px}
+  .inst-item{display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:18px;
+    border:1px solid rgba(0,0,0,.08); text-align:left; transition:border-color .15s, background .15s}
+  .inst-item:hover{background:var(--bg-soft); border-color:rgba(0,122,255,.4)}
+  .inst-item .ico{width:44px; height:44px; border-radius:13px; display:grid; place-items:center; font-size:22px; flex:none;
+    background:linear-gradient(135deg,rgba(0,122,255,.12),rgba(170,76,255,.16))}
+  .inst-item .t{font-weight:700; font-size:16px}
+  .inst-item .d{color:var(--ink-soft); font-size:13px; margin-top:2px}
+  .inst-item .badge{margin-left:auto; flex:none; background:var(--blue); color:#fff; font-size:12px; font-weight:700;
+    padding:5px 11px; border-radius:999px}
+  .inst-item.hidden-req .badge{display:none}
+  .inst-note{margin-top:16px; font-size:13px; color:var(--ink-soft); line-height:1.5}
+  .inst-note a{color:var(--blue); font-weight:600}
 </style>
 </head>
 <body>
@@ -113,8 +140,8 @@
   <h1>Максимум возможностей<br><span class="grad">для творчества</span></h1>
   <p class="sub">FireAI — очень умный ИИ. Делает 3D-игры, пишет песни, знает все языки программирования. Со&nbsp;своим&nbsp;API.</p>
   <div class="cta-row">
-    <a class="btn btn-primary" href="https://github.com/m3ufree/FireAI">💬 Открыть чат</a>
-    <a class="btn btn-ghost" href="#download">⬇️ Скачать приложение</a>
+    <button class="btn btn-primary" id="installBtn" type="button">⬇️ Установить</button>
+    <a class="btn btn-ghost" href="https://github.com/m3ufree/FireAI">💬 Открыть чат</a>
   </div>
 </section>
 
@@ -211,6 +238,67 @@
     <a href="https://github.com/m3ufree/FireAI/blob/main/public/secret.txt">/secr…ой, забудь 😉</a>
   </div>
 </footer>
+
+<div class="install-overlay" id="installOverlay" role="dialog" aria-modal="true">
+  <div class="install-card">
+    <button class="inst-close" id="installClose" type="button" aria-label="Закрыть">✕</button>
+    <h3>Установить FireAI</h3>
+    <p class="for">Мы определили твоё устройство: <b id="installOs">…</b></p>
+    <div class="inst-list" id="installList"></div>
+    <p class="inst-note" id="installNote"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var BASE='https://github.com/m3ufree/FireAI/raw/main/releases/v1.0.0/';
+  var PLATFORMS={
+    windows:{name:'Windows', ico:'🪟', d:'Один EXE — сервер и сайт внутри', file:'FireAI-win-x64.exe.gz',
+             note:'Распакуй архив и запусти FireAI-win-x64.exe — откроется в браузере.'},
+    android:{name:'Android', ico:'🤖', d:'APK с офлайн-режимом и входом в аккаунт', file:'FireAI.apk',
+             note:'РАЗРЕШИТЬ УСТАНОВКУ ДЛЯ ЭТОГО ИСТОЧНИКА (Настройки → Безопасность) при первом запуске.'},
+    linux:  {name:'Linux',   ico:'🐧', d:'Тот же один файл, без зависимостей', file:'FireAI-linux-x64.gz',
+             note:'gunzip FireAI-linux-x64.gz && chmod +x FireAI-linux-x64 && ./FireAI-linux-x64'},
+    other:  {name:'В браузере', ico:'🌐', d:'Ничего скачивать не нужно', href:'https://github.com/m3ufree/FireAI',
+             note:'Для iOS и macOS FireAI работает как сайт — открой чат в браузере.'}
+  };
+  function detect(){
+    var ua=navigator.userAgent||'';
+    if(/Android/i.test(ua)) return 'android';
+    if(/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+    if(/Macintosh|Mac OS X/i.test(ua)) return 'mac';
+    if(/Windows/i.test(ua)) return 'windows';
+    if(/Linux|X11/i.test(ua)) return 'linux';
+    return 'other';
+  }
+  var RECV={windows:'windows', android:'android', linux:'linux', ios:'other', mac:'other', other:'other'};
+  function open(){
+    var det=detect(), recv=RECV[det];
+    var label={windows:'Windows', android:'Android', linux:'Linux', ios:'iOS', mac:'macOS', other:'неизвестное'}[det];
+    document.getElementById('installOs').textContent=label;
+    var order=recv==='windows'?['windows','android','linux','other']:
+              recv==='android'?['android','windows','linux','other']:
+              recv==='linux'?['linux','windows','android','other']:['other','windows','android','linux'];
+    var html='';
+    order.forEach(function(k){
+      var p=PLATFORMS[k], href=p.href||BASE+p.file;
+      html+='<a class="inst-item" href="'+href+'"'+(k===recv?'':' target="_blank" rel="noopener"')+'>'+
+        '<span class="ico">'+p.ico+'</span>'+
+        '<span><span class="t">'+p.name+'</span><span class="d">'+p.d+'</span></span>'+
+        (k===recv?'<span class="badge">Твоё</span>':'')+'</a>';
+    });
+    document.getElementById('installList').innerHTML=html;
+    document.getElementById('installNote').innerHTML=PLATFORMS[recv].note+
+      ' Другие сборки — <a href="https://github.com/m3ufree/FireAI/tree/main/releases/v1.0.0" target="_blank" rel="noopener">все файлы на GitHub</a>.';
+    document.getElementById('installOverlay').classList.add('open');
+  }
+  function close(){document.getElementById('installOverlay').classList.remove('open');}
+  document.getElementById('installBtn').addEventListener('click',open);
+  document.getElementById('installClose').addEventListener('click',close);
+  document.getElementById('installOverlay').addEventListener('click',function(e){if(e.target===this)close();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')close();});
+})();
+</script>
 
 </body>
 </html>
