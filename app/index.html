@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>FireAI</title>
+<meta name="theme-color" content="#101216">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FireAI">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root {
+  --bg: #101216;
+  --bg-sidebar: #171a21;
+  --bg-composer: #1c2029;
+  --bg-hover: #232837;
+  --border: #2a2f3d;
+  --text: #e8eaf2;
+  --text-dim: #9aa1b5;
+  --accent: #ff6a3d;
+  --accent-soft: rgba(255, 106, 61, 0.14);
+  --user-bubble: #2b303f;
+  --code-bg: #0c0e13;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body { display: flex; }
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 10px;
+  transition: margin-left 0.2s ease;
+}
+.sidebar.collapsed { margin-left: -260px; }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 14px;
+  font-size: 20px;
+  font-weight: 700;
+}
+.brand-icon { font-size: 22px; }
+
+.new-chat {
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.new-chat:hover { background: rgba(255, 106, 61, 0.24); }
+
+.chat-list {
+  margin-top: 12px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-item:hover { background: var(--bg-hover); color: var(--text); }
+.chat-item.active { background: var(--bg-hover); color: var(--text); }
+
+.sidebar-footer { padding-top: 10px; border-top: 1px solid var(--border); }
+.mode-badge {
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--bg-hover);
+  border-radius: 999px;
+  padding: 5px 10px;
+}
+.mode-badge.live { color: #7ee08a; }
+.mode-badge.demo { color: var(--accent); }
+
+/* ---------- Main ---------- */
+.chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.topbar-title { font-weight: 700; font-size: 15px; }
+.topbar-sub { color: var(--text-dim); font-weight: 400; font-size: 12.5px; }
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.icon-btn:hover { background: var(--bg-hover); }
+
+.scroller { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+
+/* ---------- Welcome ---------- */
+.welcome {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 9vh 20px 30px;
+  text-align: center;
+}
+.welcome-logo { font-size: 54px; }
+.welcome h1 { margin: 10px 0 6px; font-size: 28px; }
+.welcome p { color: var(--text-dim); margin: 0 0 26px; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.suggestion {
+  border: 1px solid var(--border);
+  background: var(--bg-sidebar);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.suggestion:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+/* ---------- Messages ---------- */
+#messages { max-width: 720px; margin: 0 auto; padding: 18px 16px 30px; }
+
+.msg { display: flex; gap: 12px; margin-bottom: 22px; animation: rise 0.18s ease; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+
+.msg .avatar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+.msg.ai .avatar { background: var(--accent-soft); }
+.msg.user { flex-direction: row-reverse; }
+.msg.user .avatar { background: var(--user-bubble); }
+
+.bubble { min-width: 0; max-width: 100%; font-size: 15px; line-height: 1.65; }
+.msg.user .bubble {
+  background: var(--user-bubble);
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 14px;
+  white-space: pre-wrap;
+}
+.msg.ai .bubble { border-radius: 4px 14px 14px 14px; overflow-wrap: break-word; }
+
+.typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+.typing i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: blink 1s infinite;
+}
+.typing i:nth-child(2) { animation-delay: 0.2s; }
+.typing i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+/* ---------- Markdown ---------- */
+.bubble h1, .bubble h2, .bubble h3 { margin: 14px 0 6px; }
+.bubble p { margin: 8px 0; }
+.bubble ul, .bubble ol { margin: 6px 0; padding-left: 22px; }
+.bubble code {
+  background: var(--bg-hover);
+  border-radius: 4px;
+  padding: 1.5px 5px;
+  font-size: 13px;
+  font-family: "Cascadia Code", Consolas, monospace;
+}
+
+.codeblock { margin: 12px 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.codeblock-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--code-bg);
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.copy-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.copy-btn:hover { color: var(--text); border-color: var(--accent); }
+.codeblock pre {
+  margin: 0;
+  background: var(--code-bg);
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.55;
+  font-family: "Cascadia Code", Consolas, monospace;
+}
+.scroller::-webkit-scrollbar, .codeblock pre::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroller::-webkit-scrollbar-thumb, .codeblock pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.error-box {
+  border: 1px solid #b3384f;
+  background: rgba(179, 56, 79, 0.12);
+  color: #ff9db0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+/* ---------- Composer ---------- */
+.composer-wrap { padding: 0 16px 14px; background: linear-gradient(transparent, var(--bg) 40%); }
+.composer {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  background: var(--bg-composer);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 10px 10px 10px 16px;
+}
+.composer:focus-within { border-color: var(--accent); }
+.composer textarea {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  resize: none;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  font-family: inherit;
+  max-height: 200px;
+}
+.composer textarea::placeholder { color: var(--text-dim); }
+.send-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+.send-btn:disabled { opacity: 0.45; cursor: default; }
+.send-btn:not(:disabled):hover { filter: brightness(1.1); }
+
+.disclaimer {
+  max-width: 720px;
+  margin: 8px auto 0;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .sidebar { position: fixed; z-index: 10; height: 100%; }
+  .sidebar:not(.collapsed) { box-shadow: 0 0 40px rgba(0,0,0,0.6); }
+  .welcome { padding-top: 4vh; }
+}
+
+/* ---------- Code actions & run overlay ---------- */
+.head-actions { display: flex; gap: 6px; align-items: center; }
+.run-btn, .more-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.run-btn:hover, .more-btn:hover { color: var(--text); border-color: var(--accent); }
+.run-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  flex-direction: column;
+}
+.run-overlay.open { display: flex; }
+.run-bar {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+.run-close {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.run-frame { flex: 1; width: 100%; border: none; background: #fff; }
+
+/* ---------- Auth ---------- */
+.auth-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  align-items: center;
+  justify-content: center;
+}
+.auth-overlay.open { display: flex; }
+.auth-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  text-align: center;
+}
+.auth-logo { font-size: 42px; }
+.auth-card h2 { margin: 8px 0 4px; }
+.auth-sub { color: var(--text-dim); font-size: 13px; margin: 0 0 18px; }
+.auth-card input {
+  width: 100%;
+  background: var(--bg-composer);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  outline: none;
+}
+.auth-card input:focus { border-color: var(--accent); }
+.auth-btn {
+  width: 100%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.auth-btn.secondary { background: var(--bg-hover); }
+.auth-btn:hover { filter: brightness(1.1); }
+.auth-skip {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 4px;
+  text-decoration: underline;
+}
+.auth-error { color: #ff9db0; font-size: 13px; min-height: 18px; margin-bottom: 6px; }
+.user-badge {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  padding: 4px 10px 0;
+  text-align: left;
+}
+.logout-btn {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  padding: 2px 10px 4px;
+}
+.logout-btn:hover { color: var(--accent); }
+
+.api-link {
+  display: block;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  text-decoration: none;
+  padding: 8px 10px 2px;
+}
+.api-link:hover { color: var(--accent); }
+
+.server-setting { display: flex; gap: 6px; margin-top: 10px; }
+.server-setting input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 12px;
+  outline: none;
+}
+</style>
+</head>
+<body>
+<aside class="sidebar collapsed">
+  <div class="brand"><span class="brand-icon">🔥</span><span class="brand-name">FireAI</span></div>
+  <button id="newChat" class="new-chat">＋ Новый чат</button>
+  <nav id="chatList" class="chat-list"></nav>
+  <div class="sidebar-footer">
+    <span id="modeBadge" class="mode-badge demo">офлайн · демо</span>
+    <div id="userBadge" class="user-badge" style="display:none"></div>
+    <button id="logoutBtn" class="logout-btn" style="display:none">Выйти</button>
+    <div class="server-setting">
+      <input id="serverUrl" type="url" placeholder="URL сервера (необязательно)">
+      <button id="saveServer" class="copy-btn">Сохр.</button>
+    </div>
+    <a id="apiDocsLink" class="api-link" href="/api.html" target="_blank" style="display:none">🔑 API-ключи и документация</a>
+  </div>
+</aside>
+
+<main class="chat-main">
+  <header class="topbar">
+    <button id="toggleSidebar" class="icon-btn" title="Меню">☰</button>
+    <div class="topbar-title">FireAI <span class="topbar-sub">умный · 3D · код · песни</span></div>
+  </header>
+
+  <div id="scroller" class="scroller">
+    <div id="welcome" class="welcome">
+      <div class="welcome-logo">🔥</div>
+      <h1>Привет, я FireAI</h1>
+      <p>Пишу 3D-игры, программирую и сочиняю песни — работает даже без интернета.</p>
+      <div class="suggestions">
+        <button class="suggestion" data-prompt="Сделай 3D игру одним HTML-файлом">🎮 Сделай 3D игру</button>
+        <button class="suggestion" data-prompt="Напиши песню огонь в проводах">🎵 Напиши песню</button>
+        <button class="suggestion" data-prompt="Напиши код на python для суммы чисел">💻 Код на Python</button>
+        <button class="suggestion" data-prompt="Что ты умеешь?">🧠 Что ты умеешь?</button>
+      </div>
+    </div>
+    <div id="messages"></div>
+  </div>
+
+  <footer class="composer-wrap">
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Сообщение…"></textarea>
+      <button id="send" class="send-btn" title="Отправить">➤</button>
+    </div>
+    <div class="disclaimer">FireAI может ошибаться. Проверяйте важную информацию.</div>
+  </footer>
+</main>
+
+<div id="authOverlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">🔥</div>
+    <h2>Вход в FireAI</h2>
+    <p class="auth-sub">Аккаунт нужен при подключении сервера</p>
+    <input id="authLogin" placeholder="Логин" autocomplete="username">
+    <input id="authPassword" type="password" placeholder="Пароль" autocomplete="current-password">
+    <div id="authError" class="auth-error"></div>
+    <button id="authLoginBtn" class="auth-btn">Войти</button>
+    <button id="authRegisterBtn" class="auth-btn secondary">Создать аккаунт</button>
+    <button id="authSkip" class="auth-skip">Продолжить без входа</button>
+  </div>
+</div>
+<script>
+const THREE_D_GAME = `Держи готовую 3D-игру на three.js — сохрани как \`game.html\` и открой в браузере. Управление: стрелки/A-D — движение, пробел — прыжок. Собирай золотые кубы, уворачивайся от красных.
+
+\`\`\`html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>FireAI 3D — Golden Dash</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0d0f1a;font-family:sans-serif}
+  #hud{position:fixed;top:12px;left:12px;color:#ffd76a;font-size:20px;font-weight:700}
+  #hint{position:fixed;bottom:12px;left:12px;color:#8a90b4;font-size:13px}
+</style>
+</head>
+<body>
+<div id="hud">Монеты: 0</div>
+<div id="hint">← → или A/D — движение, пробел — прыжок</div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+<\/script>
+<script type="module">
+import * as THREE from 'three';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0f1a);
+scene.fog = new THREE.Fog(0x0d0f1a, 18, 60);
+
+const camera = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 4, 9);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+scene.add(new THREE.HemisphereLight(0x9db4ff, 0x1a1c2e, 1.1));
+const sun = new THREE.DirectionalLight(0xffb26b, 1.4);
+sun.position.set(5, 10, 4);
+scene.add(sun);
+
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(40, 200),
+  new THREE.MeshStandardMaterial({ color: 0x1c2038, roughness: 0.9 })
+);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+const player = new THREE.Mesh(
+  new THREE.CapsuleGeometry(0.5, 0.8, 6, 12),
+  new THREE.MeshStandardMaterial({ color: 0xff6a3d, emissive: 0x441206 })
+);
+player.position.set(0, 1, 0);
+scene.add(player);
+
+const coins = [], hazards = [];
+function spawn(mesh, z) { mesh.position.z = z; scene.add(mesh); return mesh; }
+for (let i = 0; i < 14; i++) {
+  coins.push(spawn(new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.7, 0.7),
+    new THREE.MeshStandardMaterial({ color: 0xffd76a, emissive: 0x554400 })
+  ), -10 - i * 9));
+}
+for (let i = 0; i < 8; i++) {
+  hazards.push(spawn(new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 1.2, 1.4),
+    new THREE.MeshStandardMaterial({ color: 0xe0316b, emissive: 0x40001a })
+  ), -14 - i * 16));
+}
+
+let vx = 0, vy = 0, speed = 0.22, score = 0;
+const hud = document.getElementById('hud');
+const keys = {};
+addEventListener('keydown', e => keys[e.code] = true);
+addEventListener('keyup', e => keys[e.code] = false);
+
+function hit(a, b) {
+  return Math.abs(a.position.x-b.position.x) < 1 &&
+         Math.abs(a.position.y-b.position.y) < 1.2 &&
+         Math.abs(a.position.z-b.position.z) < 1;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (keys['ArrowLeft'] || keys['KeyA']) vx = -0.12;
+  else if (keys['ArrowRight'] || keys['KeyD']) vx = 0.12;
+  else vx *= 0.85;
+  player.position.x = Math.max(-8, Math.min(8, player.position.x + vx));
+
+  const grounded = player.position.y <= 1.01;
+  if ((keys['Space']) && grounded) vy = 0.22;
+  vy -= 0.011;
+  player.position.y = Math.max(1, player.position.y + vy);
+
+  player.rotation.x -= speed;
+
+  for (const c of coins) {
+    c.rotation.y += 0.05;
+    c.position.z += speed;
+    if (hit(player, c)) {
+      score++; hud.textContent = 'Монеты: ' + score;
+      c.position.set((Math.random()*14)-7, 1, player.position.z - 90);
+    }
+    if (c.position.z > 12) c.position.z -= 130;
+  }
+  for (const h of hazards) {
+    h.position.z += speed;
+    if (hit(player, h)) {
+      player.position.set(0, 1, 0);
+      score = Math.max(0, score - 1);
+      hud.textContent = 'Монеты: ' + score;
+    }
+    if (h.position.z > 12) h.position.z -= 150;
+  }
+
+  camera.position.x += (player.position.x*0.6 - camera.position.x)*0.08;
+  camera.lookAt(player.position.x, 1.5, player.position.z - 6);
+  renderer.render(scene, camera);
+}
+animate();
+<\/script>
+<script>
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+</script></body>
+</html>
+\`\`\``;
+
+const SONG = `Вот песня «**Огонь в проводах**» — фирменный трек FireAI 🔥
+
+**Жанр:** синтвейв / электропоп, ~110 BPM, тональность A-minor.
+**Аккорды:** Am — F — C — G (повтор на куплет и припев).
+
+**Куплет 1**
+Am
+Город спит, а сервер гудит,
+F
+В байтах теплятся сны огоньков.
+C
+Я сквозь провода к тебе лечу,
+G
+Слово за словом, без лишних оков.
+
+**Припев**
+Am              F
+Огонь в проводах — это зов,
+C                 G
+Код превращается в голос рассвета.
+Am                F
+Спроси меня — и мир готов,
+C                G
+Разгореться ответом на твой вопрос.
+
+**Куплет 2**
+Am
+Три измерения, свет и полигоны,
+F
+Я соберу мир из чистого света.
+C
+Песня из нулей, мелодия единиц —
+G
+Файр, между строк, всегда у тебя под сердцем.
+
+**Бридж** (тише, полушёпот)
+F — G — Am — Em
+Если станет темно — просто набери мне,
+Я всегда в сети, я всегда в теме.
+
+Хочешь — перепишу в другом жанре (рэп, рок, баллада) или добавлю припев на английском.`;
+
+const LANG_HINTS = {
+  python: ['python', 'питон', 'python', 'py '],
+  javascript: ['javascript', ' js', 'node', 'джаваскрипт'],
+  typescript: ['typescript', ' ts '],
+  java: ['java'],
+  c: [' c++', ' c#', '+ плюсы', ' c'],
+  go: [' golang', ' go '],
+  rust: ['rust', 'раст'],
+  sql: ['sql', 'sql-запрос'],
+};
+
+function detectProgramming(prompt) {
+  const p = ' ' + prompt.toLowerCase() + ' ';
+  for (const [lang, keys] of Object.entries(LANG_HINTS)) {
+    if (keys.some((k) => p.includes(k))) return lang.trim();
+  }
+  return null;
+}
+
+function codeAnswer(prompt, lang) {
+  const task = prompt.length > 90 ? prompt.slice(0, 87) + '…' : prompt;
+  if (lang === 'python') {
+    return `Задача: ${task}. Вот аккуратное решение на Python:
+
+\`\`\`python
+from dataclasses import dataclass
+
+@dataclass
+class Result:
+    value: int
+    steps: list[int]
+
+def solve(data: list[int]) -> Result:
+    """Рабочая заготовка: подставь свою логику и тесты."""
+    steps: list[int] = []
+    total = 0
+    for i, x in enumerate(data):
+        total += x
+        steps.append(total)
+    return Result(value=total, steps=steps)
+
+if __name__ == "__main__":
+    print(solve([1, 2, 3, 4]))
+\`\`\`
+
+В демо-режиме это шаблон. Добавь API-ключ в \`.env\` — и FireAI будет решать такие задачи по-настоящему, на любом языке: Python, JS/TS, C++, Java, Go, Rust, SQL и других.`;
+  }
+  return `Задача: ${task}. Вот отправная точка на ${lang}:
+
+\`\`\`${lang}
+// Заготовка от FireAI — подставь свою логику
+function main(input) {
+  return input
+    .map((x, i) => ({ i, x }))
+    .filter(({ x }) => x != null)
+    .reduce((acc, { x }) => acc + x, 0);
+}
+
+console.log(main([1, 2, 3, 4]));
+\`\`\`
+
+В демо-режиме это шаблон. Добавь API-ключ в \`.env\` — и FireAI будет писать полноценный рабочий код на любом языке.`;
+}
+
+const GREETING_RE = /^\s*(привет|приветик|здрас|здравств|здоров|хй|хай|ку(?!б)|hello|hi|hey|добрый (день|вечер|утр))[!.?, ]*$/i;
+
+function greetingAnswer(name) {
+  const who = name ? ', ' + name : '';
+  return [
+    'О, Привет' + who + '! 🔥',
+    '',
+    'О чём сегодня? Могу:',
+    '- 🎮 собрать **3D-игру** — скажи *«сделай 3D игру»*;',
+    '- 🎵 сочинить **песню** — скажи *«напиши песню»*;',
+    '- 💻 написать **код** на любом языке — *«напиши код на python»*;',
+    '- 🧠 или просто поболтать.',
+  ].join('\n');
+}
+
+function generate(messages) {
+  const last = [...messages].reverse().find((m) => m.role === 'user');
+  const prompt = (last && last.content) || '';
+
+  if (GREETING_RE.test(prompt.trim())) return greetingAnswer('');
+
+  if (/как (дела|ты)|что (нового|делаешь)|всё хорошо|чем занят/i.test(prompt)) {
+    const greeted = /привет|здравств|хай|хэй|hello|hi/i.test(prompt);
+    return (greeted ? 'О, Привет! 🔥\n\n' : '') + 'У меня всё отлично — сервера гудят, код компилируется. А у тебя как? Может, сделаем что-то крутое: 3D-игру, песню или приложение?';
+  }
+
+  if (/^\/?помощь|^\/help|^help|что ты (умеешь|можешь)|кто ты/i.test(prompt.trim())) {
+    return [
+      '**FireAI** — очень умный ИИ-бот. Умею:',
+      '- 🎮 писать **3D-игры** и генерировать 3D-модели — попробуй: *«сделай 3D игру»*;',
+      '- 🎵 сочинять **песни** — попробуй: *«напиши песню»*;',
+      '- 💻 программировать на **всех языках** — попробуй: *«напиши код на python»*;',
+      '- 🧠 отвечать на любые вопросы, когда подключён настоящий LLM.',
+      '',
+      'Сейчас я работаю в **демо-режиме**: заполните `.env` (скопируйте из `.env.example`), перезапустите сервер — и я стану полноценным ассистентом.',
+    ].join('\n');
+  }
+
+  if (/пасхалк|easter|secret|яйцо/i.test(prompt)) {
+    return '👀 Пасхалки? Кто-то тут любопытный...\n\nДам одну подсказку: загляни в файл **secret.txt** рядом с файлами приложения (или открой **/secret.txt** после адреса сервера). Больше не скажу. 🔥';
+  }
+  if (/(3\s*d|3d|трейс|three|игру|game)/i.test(prompt)) return THREE_D_GAME;
+  if (/(песн|song|музык|music|трек)/i.test(prompt)) return SONG;
+
+  const lang = detectProgramming(prompt);
+  if (lang) return codeAnswer(prompt, lang);
+
+  return `Принято: «${prompt.slice(0, 120)}».
+
+Сейчас я в **демо-режиме** и отвечаю шаблонами, но и без ключа умею:
+- 🎮 *сделай 3D игру* — соберу готовую 3D-игру одним HTML-файлом;
+- 🎵 *напиши песню* — текст, аккорды, структура;
+- 💻 *напиши код на python* — заготовки кода.
+
+Чтобы я стал по-настоящему умным (любые вопросы, любой язык, большие проекты):
+1. Скопируйте \`.env.example\` в \`.env\`.
+2. Вставьте ключ провайдера (\`FIREAI_API_KEY\`) — подходит Mistral, OpenAI, OpenRouter или локальная Ollama.
+3. Перезапустите \`npm start\`. 🔥`;
+}
+
+
+
+</script>
+<script>
+/* FireAI mobile — офлайн-движок + опциональный сервер. */
+(() => {
+  const el = (id) => document.getElementById(id);
+  const storage = (() => {
+    try {
+      const t = "__fireai_test";
+      storage.setItem(t, t);
+      storage.removeItem(t);
+      return localStorage;
+    } catch (_) {
+      const mem = new Map();
+      return {
+        getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+        setItem: (k, v) => mem.set(k, String(v)),
+        removeItem: (k) => mem.delete(k),
+      };
+    }
+  })();
+  const $messages = el('messages');
+  const $welcome = el('welcome');
+  const $scroller = el('scroller');
+  const $input = el('input');
+  const $send = el('send');
+  const $chatList = el('chatList');
+  const $modeBadge = el('modeBadge');
+  const $sidebar = document.querySelector('.sidebar');
+  const $serverUrl = el('serverUrl');
+
+  let SERVER = storage.getItem('fireai.server') || '';
+  $serverUrl.value = SERVER;
+
+  el('saveServer').onclick = () => {
+    SERVER = $serverUrl.value.trim().replace(/\/+$/, '');
+    storage.setItem('fireai.server', SERVER);
+    storage.removeItem('fireai.token');
+    storage.removeItem('fireai.user');
+    ME = '';
+    renderBadge();
+    el('apiDocsLink').style.display = SERVER ? 'block' : 'none';
+    el('apiDocsLink').href = SERVER + '/api.html';
+    renderUser();
+    ensureServerAuth();
+    $sidebar.classList.add('collapsed');
+  };
+  el('toggleSidebar').onclick = () => $sidebar.classList.toggle('collapsed');
+
+  function authHeaders() {
+    const t = storage.getItem('fireai.token');
+    return t ? { Authorization: 'Bearer ' + t } : {};
+  }
+  const $auth = el('authOverlay');
+  function showAuth(err) {
+    el('authError').textContent = err || '';
+    $auth.classList.add('open');
+  }
+  function hideAuth() { $auth.classList.remove('open'); }
+  function renderUser() {
+    const b = el('userBadge'), l = el('logoutBtn');
+    if (ME && SERVER) { b.style.display = 'block'; b.textContent = '👤 ' + ME; l.style.display = 'block'; }
+    else { b.style.display = 'none'; l.style.display = 'none'; }
+  }
+  async function tryAuthServer(registerMode) {
+    const login = el('authLogin').value.trim();
+    const password = el('authPassword').value;
+    if (!login || !password) return showAuth('Введите логин и пароль');
+    try {
+      const r = await fetch(SERVER + '/api/' + (registerMode ? 'register' : 'login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login, password }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) return showAuth(d.error || 'Ошибка входа');
+      storage.setItem('fireai.token', d.token);
+      storage.setItem('fireai.user', d.user);
+      ME = d.user;
+      hideAuth();
+      renderUser();
+      chats = load();
+      currentId = storage.getItem(kk(LS_CURRENT));
+      if (chats.length === 0) newChat();
+      else { renderSidebar(); renderMessages(); }
+    } catch (_) {
+      showAuth('Сервер недоступен');
+    }
+  }
+  el('authLoginBtn').onclick = () => tryAuthServer(false);
+  el('authRegisterBtn').onclick = () => tryAuthServer(true);
+  el('authSkip').onclick = () => { hideAuth(); };
+  el('logoutBtn').onclick = () => {
+    storage.removeItem('fireai.token');
+    storage.removeItem('fireai.user');
+    ME = '';
+    SERVER = '';
+    $serverUrl.value = '';
+    storage.setItem('fireai.server', '');
+    storage.removeItem(kk(LS_CURRENT));
+    renderBadge();
+    renderUser();
+    chats = load();
+    if (chats.length === 0) newChat();
+    else { renderSidebar(); renderMessages(); }
+  };
+  async function ensureServerAuth() {
+    if (!SERVER) { hideAuth(); return; }
+    const t = storage.getItem('fireai.token');
+    try {
+      const r = await fetch(SERVER + '/api/me', { headers: authHeaders() });
+      if (r.ok) {
+        ME = (await r.json()).user;
+        renderUser();
+        hideAuth();
+      } else {
+        storage.removeItem('fireai.token');
+        ME = '';
+        renderUser();
+        showAuth('Для работы с сервером нужен вход');
+      }
+    } catch (_) {
+      hideAuth();
+    }
+  }
+
+  function renderBadge() {
+    if (!SERVER) {
+      $modeBadge.textContent = 'офлайн · демо';
+      $modeBadge.className = 'mode-badge demo';
+    } else {
+      $modeBadge.textContent = 'live · сервер';
+      $modeBadge.className = 'mode-badge live';
+    }
+  }
+
+  const LS_CHATS = 'fireai.chats';
+  const LS_CURRENT = 'fireai.current';
+  const kk = (b) => (SERVER ? `${b}.${ME || 'guest'}.v1` : `${b}.${ME || 'guest'}.v1`);
+
+  let ME = '';
+  let chats = load();
+  let currentId = storage.getItem(kk(LS_CURRENT));
+
+  function load() {
+    try {
+      const p = JSON.parse(storage.getItem(kk(LS_CHATS)));
+      return Array.isArray(p) ? p : [];
+    } catch (_) {
+      return [];
+    }
+  }
+  const save = () => {
+    storage.setItem(LS_CHATS, JSON.stringify(chats));
+    storage.setItem(LS_CURRENT, currentId || '');
+  };
+  const currentChat = () => chats.find((c) => c.id === currentId) || null;
+
+  function newChat() {
+    const chat = { id: 'c' + Date.now(), title: 'Новый чат', messages: [] };
+    chats.unshift(chat);
+    currentId = chat.id;
+    save();
+    renderSidebar();
+    renderMessages();
+    $input.focus();
+  }
+
+  function renderSidebar() {
+    $chatList.innerHTML = '';
+    for (const chat of chats) {
+      const item = document.createElement('div');
+      item.className = 'chat-item' + (chat.id === currentId ? ' active' : '');
+      item.innerHTML = '<span>💬</span>';
+      item.appendChild(document.createTextNode(chat.title));
+      item.onclick = () => {
+        currentId = chat.id;
+        save();
+        renderSidebar();
+        renderMessages();
+      };
+      $chatList.appendChild(item);
+    }
+  }
+
+  const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  function renderMarkdown(text) {
+    const parts = text.split(/```/);
+    let html = '';
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 2 === 1) {
+        const nl = parts[i].indexOf('\n');
+        const lang = nl === -1 ? '' : parts[i].slice(0, nl).trim();
+        const code = nl === -1 ? parts[i] : parts[i].slice(nl + 1);
+        html += codeblockHtml(lang, code);
+      } else {
+        let t = escapeHtml(parts[i])
+          .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+          .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+          .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+          .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+          .replace(/^\s*[-•] (.*)$/gm, '<li>$1</li>')
+          .replace(/^\s*\d+\. (.*)$/gm, '<li>$1</li>');
+        t = t.replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, '<ul>$1</ul>');
+        html += t
+          .split(/\n{2,}/)
+          .map((b) => (b.trim() && !/^<(h\d|ul|div|li)/.test(b.trim()) ? `<p>${b.trim()}</p>` : b))
+          .join('\n');
+      }
+    }
+    return html;
+  }
+
+
+  function codeblockHtml(lang, code) {
+    const langKey = (lang || '').trim().toLowerCase();
+    const isHtml = langKey === 'html' || langKey === 'htm';
+    const tooLong = code.length > 1200;
+    const shown = tooLong ? code.slice(0, 1200) : code;
+    const preview = escapeHtml(shown) + (tooLong ? '\n… код длинный — нажмите «Показать весь код»' : '');
+    const runBtn = isHtml ? '<button class="run-btn">▶ Запустить</button>' : '';
+    const moreBtn = tooLong ? '<button class="more-btn">Показать весь код</button>' : '';
+    const full = encodeURIComponent(code.replace(/\n$/, ''));
+    return '<div class="codeblock"' +
+      ' data-full="' + full + '">' +
+      '<div class="codeblock-head"><span>' + escapeHtml(lang || 'код') + '</span>' +
+      '<span class="head-actions">' + runBtn + moreBtn +
+      '<button class="copy-btn">Копировать</button></span></div>' +
+      '<pre>' + preview + '</pre></div>';
+  }
+
+  function bindCodeActions(root) {
+    root.querySelectorAll('.copy-btn').forEach((btn) => {
+      btn.onclick = () => {
+        const cb = btn.closest('.codeblock');
+        const code = cb.getAttribute('data-full') ? decodeURIComponent(cb.getAttribute('data-full')) : cb.querySelector('pre').textContent;
+        try { navigator.clipboard && navigator.clipboard.writeText(code); } catch (_) {}
+        btn.textContent = '✓';
+        setTimeout(() => (btn.textContent = 'Копировать'), 1200);
+      };
+    });
+    root.querySelectorAll('.more-btn').forEach((btn) => {
+      btn.onclick = () => {
+        const cb = btn.closest('.codeblock');
+        cb.querySelector('pre').textContent = decodeURIComponent(cb.getAttribute('data-full'));
+        btn.remove();
+      };
+    });
+    root.querySelectorAll('.run-btn').forEach((btn) => {
+      btn.onclick = () => {
+        const cb = btn.closest('.codeblock');
+        let ov = document.querySelector('.run-overlay');
+        if (!ov) {
+          ov = document.createElement('div');
+          ov.className = 'run-overlay';
+          ov.innerHTML = '<div class="run-bar"><button class="run-close">✕ Закрыть</button></div><iframe class="run-frame" sandbox="allow-scripts"></iframe>';
+          document.body.appendChild(ov);
+          ov.querySelector('.run-close').onclick = () => ov.remove();
+        }
+        const frame = ov.querySelector('iframe');
+        frame.srcdoc = decodeURIComponent(cb.getAttribute('data-full'));
+        ov.classList.add('open');
+      };
+    });
+  }
+
+  const bindCopy = bindCodeActions;
+
+  function renderMessages() {
+    const chat = currentChat();
+    $messages.innerHTML = '';
+    const has = chat && chat.messages.length > 0;
+    $welcome.style.display = has ? 'none' : '';
+    if (!has) return;
+    for (const m of chat.messages) {
+      if (m.role === 'user') addBubble('user', m.content);
+      else {
+        const node = addBubble('ai', '');
+        node.bubble.innerHTML = renderMarkdown(m.content);
+        bindCopy(node.bubble);
+      }
+    }
+    scrollDown();
+  }
+
+  function addBubble(role, text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ' + role;
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = role === 'user' ? '🧑' : '🔥';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    wrap.append(avatar, bubble);
+    $messages.appendChild(wrap);
+    return { wrap, bubble };
+  }
+
+  const scrollDown = () => (window.scrollTo(0, document.body.scrollHeight));
+
+  let busy = false;
+
+  async function send(prompt) {
+    if (busy || !prompt.trim()) return;
+    if (!currentChat()) newChat();
+    const chat = currentChat();
+    chat.messages.push({ role: 'user', content: prompt });
+    if (chat.title === 'Новый чат') chat.title = prompt.slice(0, 30);
+    save();
+    renderSidebar();
+
+    $welcome.style.display = 'none';
+    addBubble('user', prompt);
+    scrollDown();
+
+    busy = true;
+    $send.disabled = true;
+    const node = addBubble('ai', '');
+    node.bubble.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+
+    let full = '';
+    try {
+      if (SERVER) {
+        const res = await fetch(SERVER + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ messages: chat.messages }),
+        });
+        if (res.status === 401) {
+          showAuth('Войдите в аккаунт на сервере');
+          throw new Error('Нужно войти в аккаунт');
+        }
+        if (!res.ok || !res.body) throw new Error('Сервер ответил ' + res.status);
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '';
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          for (;;) {
+            const i = buf.indexOf('\n\n');
+            if (i < 0) break;
+            const ev = buf.slice(0, i);
+            buf = buf.slice(i + 2);
+            const dl = ev.split('\n').find((l) => l.startsWith('data:'));
+            if (!dl) continue;
+            const p = JSON.parse(dl.slice(5));
+            if (ev.includes('event: error')) throw new Error(p.message || 'Ошибка');
+            if (p.content) {
+              full += p.content;
+              node.bubble.innerHTML = renderMarkdown(full);
+              scrollDown();
+            }
+          }
+        }
+      } else {
+        full = generate(chat.messages);
+        const words = full.match(/\s*\S+/g) || [full];
+        let acc = '';
+        for (const w of words) {
+          acc += w;
+          node.bubble.innerHTML = renderMarkdown(acc);
+          scrollDown();
+          await new Promise((r) => setTimeout(r, 8));
+        }
+      }
+      chat.messages.push({ role: 'assistant', content: full });
+      bindCodeActions(node.bubble);
+      save();
+    } catch (err) {
+      node.bubble.innerHTML = `<div class="error-box">⚠️ ${escapeHtml(String(err.message || err))}</div>`;
+    } finally {
+      busy = false;
+      $send.disabled = false;
+      scrollDown();
+    }
+  }
+
+  $send.onclick = () => {
+    const t = $input.value;
+    $input.value = '';
+    autosize();
+    send(t);
+  };
+  $input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      $send.click();
+    }
+  });
+  function autosize() {
+    $input.style.height = 'auto';
+    $input.style.height = Math.min($input.scrollHeight, 160) + 'px';
+  }
+  $input.addEventListener('input', autosize);
+
+  document.querySelectorAll('.suggestion').forEach((b) => (b.onclick = () => send(b.dataset.prompt)));
+  el('newChat').onclick = newChat;
+  renderBadge();
+
+  if (chats.length === 0) newChat();
+  else {
+    if (!currentChat()) currentId = chats[0].id;
+    renderSidebar();
+    renderMessages();
+  }
+})();
+
+</script>
+</body>
+</html>

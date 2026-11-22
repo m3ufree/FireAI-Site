@@ -1,0 +1,17 @@
+{
+  "name": "FireAI — умный ИИ",
+  "short_name": "FireAI",
+  "description": "Очень умный ИИ: делает 3D-игры, пишет песни, программирует. Работает офлайн.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#101216",
+  "theme_color": "#101216",
+  "lang": "ru",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
